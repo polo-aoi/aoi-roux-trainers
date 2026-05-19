@@ -1,15 +1,15 @@
 {
   "files": {
-    "main.js": "/aoi-roux-trainers/static/js/main.d58ebb05.chunk.js",
-    "main.js.map": "/aoi-roux-trainers/static/js/main.d58ebb05.chunk.js.map",
+    "main.js": "/aoi-roux-trainers/static/js/main.b9ccf3f3.chunk.js",
+    "main.js.map": "/aoi-roux-trainers/static/js/main.b9ccf3f3.chunk.js.map",
     "runtime-main.js": "/aoi-roux-trainers/static/js/runtime-main.8317f2ff.js",
     "runtime-main.js.map": "/aoi-roux-trainers/static/js/runtime-main.8317f2ff.js.map",
     "static/css/2.0d58d222.chunk.css": "/aoi-roux-trainers/static/css/2.0d58d222.chunk.css",
-    "static/js/2.9b1a6ce0.chunk.js": "/aoi-roux-trainers/static/js/2.9b1a6ce0.chunk.js",
-    "static/js/2.9b1a6ce0.chunk.js.map": "/aoi-roux-trainers/static/js/2.9b1a6ce0.chunk.js.map",
+    "static/js/2.38db8745.chunk.js": "/aoi-roux-trainers/static/js/2.38db8745.chunk.js",
+    "static/js/2.38db8745.chunk.js.map": "/aoi-roux-trainers/static/js/2.38db8745.chunk.js.map",
     "index.html": "/aoi-roux-trainers/index.html",
     "static/css/2.0d58d222.chunk.css.map": "/aoi-roux-trainers/static/css/2.0d58d222.chunk.css.map",
-    "static/js/2.9b1a6ce0.chunk.js.LICENSE.txt": "/aoi-roux-trainers/static/js/2.9b1a6ce0.chunk.js.LICENSE.txt",
+    "static/js/2.38db8745.chunk.js.LICENSE.txt": "/aoi-roux-trainers/static/js/2.38db8745.chunk.js.LICENSE.txt",
     "static/js/analyzer-worker.802af208.chunk.worker.js": "/aoi-roux-trainers/static/js/analyzer-worker.802af208.chunk.worker.js",
     "static/js/analyzer-worker.802af208.chunk.worker.js.map": "/aoi-roux-trainers/static/js/analyzer-worker.802af208.chunk.worker.js.map",
     "static/media/index.css": "/aoi-roux-trainers/static/media/roboto-mono-latin-700italic.a2b3b9b9.woff"
@@ -17,7 +17,7 @@
   "entrypoints": [
     "static/js/runtime-main.8317f2ff.js",
     "static/css/2.0d58d222.chunk.css",
-    "static/js/2.9b1a6ce0.chunk.js",
-    "static/js/main.d58ebb05.chunk.js"
+    "static/js/2.38db8745.chunk.js",
+    "static/js/main.b9ccf3f3.chunk.js"
   ]
 }
