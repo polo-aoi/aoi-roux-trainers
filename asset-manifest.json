@@ -1,7 +1,7 @@
 {
   "files": {
-    "main.js": "/aoi-roux-trainers/static/js/main.b9ccf3f3.chunk.js",
-    "main.js.map": "/aoi-roux-trainers/static/js/main.b9ccf3f3.chunk.js.map",
+    "main.js": "/aoi-roux-trainers/static/js/main.45c1b5f9.chunk.js",
+    "main.js.map": "/aoi-roux-trainers/static/js/main.45c1b5f9.chunk.js.map",
     "runtime-main.js": "/aoi-roux-trainers/static/js/runtime-main.8317f2ff.js",
     "runtime-main.js.map": "/aoi-roux-trainers/static/js/runtime-main.8317f2ff.js.map",
     "static/css/2.0d58d222.chunk.css": "/aoi-roux-trainers/static/css/2.0d58d222.chunk.css",
@@ -18,6 +18,6 @@
     "static/js/runtime-main.8317f2ff.js",
     "static/css/2.0d58d222.chunk.css",
     "static/js/2.38db8745.chunk.js",
-    "static/js/main.b9ccf3f3.chunk.js"
+    "static/js/main.45c1b5f9.chunk.js"
   ]
 }
