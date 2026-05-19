@@ -35,7 +35,13 @@ const useStyles = makeStyles(theme => ({
       paddingTop: theme.spacing(1),
       paddingBottom: theme.spacing(4),
       backgroundColor: theme.palette.background.default,
-      transition: "all .3s ease-in-out"
+      transition: "all .3s ease-in-out",
+      [theme.breakpoints.down(768)]: {
+        paddingTop: theme.spacing(0.5),
+        paddingBottom: theme.spacing(3),
+        paddingLeft: 10,
+        paddingRight: 10,
+      },
     },
     button: {
       width: "100%",
@@ -49,6 +55,12 @@ const useStyles = makeStyles(theme => ({
       '&:active': {
         transform: 'scale(0.98)',
       },
+      [theme.breakpoints.down(768)]: {
+        height: 56,
+        fontSize: '1.15rem',
+        padding: '14px 24px',
+        borderRadius: 16,
+      },
     },
     paper: {
       padding: theme.spacing(2.5),
@@ -59,6 +71,10 @@ const useStyles = makeStyles(theme => ({
       borderRadius: 18,
       border: '1px solid ' + (theme.palette.mode === 'dark' ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.04)'),
       boxShadow: '0 1px 3px rgba(0,0,0,0.03), 0 1px 2px rgba(0,0,0,0.04)',
+      [theme.breakpoints.down(768)]: {
+        padding: 12,
+        marginBottom: 10,
+      },
     },
     canvasPaper: {
       padding: theme.spacing(0),
@@ -128,6 +144,10 @@ const useStyles = makeStyles(theme => ({
       display: 'grid',
       gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
       gap: '24px',
+      [theme.breakpoints.down(768)]: {
+        gridTemplateColumns: '1fr',
+        gap: '12px',
+      },
     },
     chainButton: {
       textTransform: 'none',
@@ -141,6 +161,25 @@ const useStyles = makeStyles(theme => ({
       '&:hover': {
         color: theme.palette.primary.main,
         backgroundColor: theme.palette.mode === 'dark' ? 'rgba(85,108,214,0.1)' : 'rgba(85,108,214,0.06)',
+      },
+    },
+    formControlLabel: {
+      [theme.breakpoints.down(768)]: {
+        paddingTop: 4,
+        paddingBottom: 4,
+        '& .MuiFormControlLabel-label': {
+          fontSize: '0.95rem',
+        },
+        '& .MuiRadio-root, & .MuiCheckbox-root': {
+          padding: 12,
+        },
+      },
+    },
+    radioGroup: {
+      [theme.breakpoints.down(768)]: {
+        '& .MuiFormGroup-root': {
+          flexDirection: 'column',
+        },
       },
     },
   }))
@@ -431,7 +470,7 @@ function BlockTrainerView(props: { state: AppState, dispatch: React.Dispatch<Act
       <Paper className={classes.paper} style={{paddingTop: 22, paddingBottom: 22}}>
 
       <Grid container spacing={1}>
-        <Grid item xs={5} sm={4} md={3} marginLeft={1}>
+        <Grid item xs={12} sm={4} md={3} marginLeft={1}>
           <Button onFocus={(evt) => evt.target.blur() } className={classes.button}
             size="large" variant="contained" color="primary"
             onClick={handleSpace}>

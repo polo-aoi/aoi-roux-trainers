@@ -83,7 +83,7 @@ export const getTabModes = (): [Mode, string, string][] => [
 
 function _getInitialHashLocation() {
   const modes = getTabModes();
-  const default_idx = modes.findIndex(x => x[0] === "fbdr")
+  const default_idx = modes.findIndex(x => x[0] === "fs")
   if (window.location.hash) {
     let idx = modes.findIndex(x => x[0] === window.location.hash.slice(1))
     if (idx === -1) {

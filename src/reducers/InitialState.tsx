@@ -6,7 +6,7 @@ import { getLanguage } from '../Translation';
 
 
 export const getInitialState = (mode?: Mode): AppState => {
-    mode = mode || "fbdr";
+    mode = mode || "fs";
     let initialStateName: StateT = function () {
         switch (mode) {
             case "cmll":

@@ -34,7 +34,7 @@ const zh = {
 
   NAV: {
     APP_TITLE: "Roux 训练器",
-    APP_TITLE_SHORT: "Roux 🐱",
+    APP_TITLE_SHORT: "Roux 训练器",
     GOT_IT: "知道了！",
     LANGUAGE: "语言",
   },
@@ -303,7 +303,7 @@ const en: typeof zh = {
 
   NAV: {
     APP_TITLE: "Roux Trainer",
-    APP_TITLE_SHORT: "Roux 🐱",
+    APP_TITLE_SHORT: "Roux Trainer",
     GOT_IT: "Got it!",
     LANGUAGE: "Language",
   },

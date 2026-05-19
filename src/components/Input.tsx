@@ -74,7 +74,7 @@ export function ColorPanel(props: {state: AppState, dispatch: React.Dispatch<Act
         <Box height={8}/>
         <Dialog disableEscapeKeyDown open={open} onClose={handleClose}
           maxWidth="md" fullWidth
-          PaperProps={{sx: {borderRadius: 5, padding: 2, minWidth: 640}}}>
+          PaperProps={{sx: {borderRadius: 5, padding: 2, maxWidth: '100%', boxSizing: 'border-box'}}}>
           <DialogTitle> {X.ANALYZER.FB_ORI_DIALOG_TITLE}  </DialogTitle>
           <DialogContent>
             {content}

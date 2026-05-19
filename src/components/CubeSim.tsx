@@ -4,8 +4,6 @@ import { FaceletCubeT, Face } from "../lib/Defs";
 import * as THREE from 'three';
 import { arrayEqual } from '../lib/Math';
 import * as chroma from 'chroma-js';
-import useMediaQuery from '@mui/material/useMediaQuery';
-import { useTheme } from '@mui/material/styles';
 import { OrbitControls } from '../lib/three/OrbitControls';
 
 type Config = {
@@ -424,8 +422,7 @@ function CubeSim(props: Config) {
     let cubePainter = React.useMemo(drawCube, [])
     // obscureNonLR defaults to false for non-SS modes, true only for SS mode when enabled
 
-    const gt_xs = useMediaQuery(useTheme().breakpoints.up('sm'));
-    const enableControl = gt_xs
+    const enableControl = true
 
     let painter = cubePainter(props.cube, {
             width, height, colorScheme, faces: facesToReveal, theme, hintDistance, enableControl,

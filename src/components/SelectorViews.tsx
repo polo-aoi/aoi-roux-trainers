@@ -16,8 +16,8 @@ import {
 } from '@mui/material';
 
 import makeStyles from '@mui/styles/makeStyles';
-
-import { styled } from '@mui/material/styles';
+import useMediaQuery from '@mui/material/useMediaQuery';
+import { useTheme, styled } from '@mui/material/styles';
 
 import SettingsIcon from '@mui/icons-material/Settings';
 
@@ -69,12 +69,36 @@ const useStyles = makeStyles(theme => ({
     select: {
       color: theme.palette.text.primary,
       marginBottom: theme.spacing(0.5),
+      [theme.breakpoints.down(768)]: {
+        '& .MuiFormGroup-root': {
+          flexDirection: 'column',
+        },
+        '& .MuiFormControlLabel-root': {
+          paddingTop: 4,
+          paddingBottom: 4,
+        },
+        '& .MuiFormControlLabel-label': {
+          fontSize: '0.95rem',
+        },
+        '& .MuiRadio-root, & .MuiCheckbox-root': {
+          padding: 12,
+        },
+      },
     },
     selectLabel: {
       color: '#86868b',
       fontSize: '0.8125rem',
       fontWeight: 500,
       marginBottom: 4,
+      [theme.breakpoints.down(768)]: {
+        fontSize: '0.95rem',
+        marginBottom: 8,
+      },
+    },
+    multiSelectGrid: {
+      [theme.breakpoints.down(768)]: {
+        gridTemplateColumns: '1fr !important',
+      },
     }
 
 }))
@@ -183,6 +207,8 @@ function SingleSelect(props: {state: AppState, dispatch: React.Dispatch<Action>,
   let { config } = state
   let sel = (config as any)[select] as Selector
   let classes = useStyles()
+  const theme = useTheme()
+  const is_mobile = useMediaQuery(theme.breakpoints.down(768))
 
   const handleChange = (evt: { target: { value: string; }; }) => {
     let { names } = sel
@@ -217,7 +243,7 @@ function SingleSelect(props: {state: AppState, dispatch: React.Dispatch<Action>,
           <HelpOutlineIcon sx={{ fontSize: 30 }}/>
         </IconButton>
       </CustomTooltip> </Box> : null} */}
-    <RadioGroup aria-label="position" name="position" value={radioValue} onChange={handleChange} row>
+    <RadioGroup aria-label="position" name="position" value={radioValue} onChange={handleChange} row={!is_mobile}>
       {
         sel.names.map((name, i) => (
           filterNames && filterNames.has(name) ? null :
@@ -246,6 +272,9 @@ function MultiSelectContent(props: {state: AppState, dispatch: React.Dispatch<Ac
   let { state, dispatch, select, options } = props
   options = options || {}
   let { config } = state
+  let classes = useStyles()
+  const theme = useTheme()
+  const is_mobile = useMediaQuery(theme.breakpoints.down(768))
 
   let sel = (config as any)[select] as Selector
   const handleChange = (evt: { target: { value: string; checked: boolean }; }) => {
@@ -300,10 +329,11 @@ function MultiSelectContent(props: {state: AppState, dispatch: React.Dispatch<Ac
     (<FormGroup row>
     {options.manipulators.map(x => makeManipulator(x)) }
     </FormGroup>) : null;
+  const gridClass = is_mobile ? classes.multiSelectGrid : ''
   const content = (
     <React.Fragment>
       {manipulator_row}
-      <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '4px 24px' }}>
+      <Box className={gridClass} sx={{ display: 'grid', gridTemplateColumns: is_mobile ? '1fr' : 'repeat(2, 1fr)', gap: is_mobile ? '12px 0' : '4px 24px' }}>
       {sel.names.map( (name, i) => makeBox(name, !!sel.flags[i], sel.getDisplayName(i)))}
       </Box>
     </React.Fragment>
@@ -324,6 +354,8 @@ function MultiSelect(props: {state: AppState, dispatch: React.Dispatch<Action>, 
     setOpen(false);
   }
   let classes = useStyles()
+  const theme = useTheme()
+  const is_mobile = useMediaQuery(theme.breakpoints.down(768))
 
   if (options.noDialog)
   return (
@@ -345,8 +377,8 @@ function MultiSelect(props: {state: AppState, dispatch: React.Dispatch<Action>, 
     </Button>
     <Box height={8}/>
     <Dialog disableEscapeKeyDown open={open} onClose={handleClose}
-      maxWidth="md" fullWidth
-      PaperProps={{sx: {borderRadius: 5, padding: 2, minWidth: 640}}}>
+      maxWidth={is_mobile ? 'xs' : 'md'} fullWidth
+      PaperProps={{sx: {borderRadius: 5, padding: 2, maxWidth: '100%', boxSizing: 'border-box'}}}>
       <DialogTitle> {label} </DialogTitle>
       <DialogContent>
         {content}

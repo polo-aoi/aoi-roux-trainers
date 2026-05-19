@@ -120,7 +120,7 @@ export function createInitialConfig(): Config {
         theme: new Selector({
             names: ["bright", "dark"],
             displayNames: [X.CONFIG.THEME_BRIGHT, X.CONFIG.THEME_DARK],
-            flags: [0, 1],
+            flags: [1, 0],
             kind: "theme"
         }),
         evaluator: new Selector({

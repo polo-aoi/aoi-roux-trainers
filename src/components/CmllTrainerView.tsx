@@ -27,7 +27,11 @@ const useStyles = makeStyles(theme => ({
     container: {
       paddingTop: theme.spacing(0),
       paddingBottom: theme.spacing(2),
-      backgroundColor: theme.palette.background.default
+      backgroundColor: theme.palette.background.default,
+      [theme.breakpoints.down(768)]: {
+        paddingLeft: 10,
+        paddingRight: 10,
+      },
     },
     paper: {
       padding: theme.spacing(3),
@@ -54,7 +58,12 @@ const useStyles = makeStyles(theme => ({
       color: theme.palette.text.secondary,
     },
     button: {
-      width: "100%"
+      width: "100%",
+      [theme.breakpoints.down(768)]: {
+        height: 52,
+        fontSize: '1.1rem',
+        borderRadius: 14,
+      },
     },
 }))
 
@@ -360,7 +369,7 @@ export function CmllTrainerView(props: { state: AppState, dispatch: React.Dispat
     <Box height={30}/>
 
     <Grid container spacing={0}>
-        <Grid item xs={4} sm={4} md={3}>
+        <Grid item xs={12} sm={4} md={3}>
           <Button onFocus={(evt) => evt.target.blur() } className={classes.button}
           size="medium" variant="contained" color="primary" onClick={handleNext}>
               {X.COMMON.NEXT}
@@ -603,7 +612,7 @@ export function OllcpTrainerView(props: { state: AppState, dispatch: React.Dispa
   <Box height={30}/>
 
   <Grid container spacing={0}>
-      <Grid item xs={4} sm={4} md={3}>
+      <Grid item xs={12} sm={4} md={3}>
         <Button onFocus={(evt) => evt.target.blur() } className={classes.button}
         size="medium" variant="contained" color="primary" onClick={handleNext}>
             Next
