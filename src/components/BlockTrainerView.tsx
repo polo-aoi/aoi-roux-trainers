@@ -288,12 +288,14 @@ function BlockTrainerView(props: { state: AppState, dispatch: React.Dispatch<Act
     }
 
     const setup = desc.length ? desc[0].setup! : ""
-    const showChainButtons = (state.mode === "fs" || state.mode === "fsdr" || state.mode === "fbdr")
+    const showChainButtons = (state.mode === "fb" || state.mode === "fs" || state.mode === "fsdr" || state.mode === "fbdr")
       && (state.name === "revealed" || state.name === "revealed_all");
     const handleChainTrain = (alg: string) => {
       const currentOri = state.cube.ori;
       let targetMode: Mode;
-      if (state.mode === "fs" || state.mode === "fsdr") {
+      if (state.mode === "fb") {
+        targetMode = "ss";
+      } else if (state.mode === "fs" || state.mode === "fsdr") {
         const targetName = state.config.chainTargetSelector.getActiveName();
         targetMode = (targetName === "FBLP + SS") ? "fbss" : "fbdr";
       } else {
