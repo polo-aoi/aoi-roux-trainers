@@ -20,7 +20,7 @@
 
 ## 🚀 线上体验 (Live Demo)
 
-🎉 **Vercel 部署地址：** [在这里填入你等下生成的 Vercel 网址]
+🎉 **Vercel 部署地址：** https://polo-aoi.github.io/aoi-roux-trainers/#fs
 
 ## 🛠️ 本地运行 (Local Development)
 
