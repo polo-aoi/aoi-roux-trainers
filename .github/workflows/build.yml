@@ -70,24 +70,28 @@ jobs:
         if: matrix.target != 'android'
         run: npx electron-builder --${{ matrix.target }} --publish never
 
-      - name: Setup Android SDK
-        if: matrix.target == 'android'
-        run: |
-          SDK_URL=https://dl.google.com/android/repository/commandlinetools-linux-11076708_latest.zip
-          mkdir -p /opt/android-sdk/cmdline-tools
-          curl -fsSL "$SDK_URL" -o /tmp/cmdline-tools.zip
-          unzip -q /tmp/cmdline-tools.zip -d /tmp/cmdline-tools-tmp
-          mv /tmp/cmdline-tools-tmp/cmdline-tools /opt/android-sdk/cmdline-tools/latest
-          yes | /opt/android-sdk/cmdline-tools/latest/bin/sdkmanager --licenses 2>/dev/null || true
-          /opt/android-sdk/cmdline-tools/latest/bin/sdkmanager "platform-tools" "platforms;android-34" "build-tools;34.0.0" 2>&1 | tail -5
-          echo "ANDROID_SDK_ROOT=/opt/android-sdk" >> $GITHUB_ENV
-
       - name: Setup Java 17
         if: matrix.target == 'android'
         uses: actions/setup-java@v5
         with:
           java-version: '17'
           distribution: 'temurin'
+
+      - name: Setup Android SDK
+        if: matrix.target == 'android'
+        run: |
+          set -euo pipefail
+          SDK_URL=https://dl.google.com/android/repository/commandlinetools-linux-11076708_latest.zip
+          mkdir -p /opt/android-sdk/cmdline-tools
+          curl -fsSL "$SDK_URL" -o /tmp/cmdline-tools.zip
+          unzip -q /tmp/cmdline-tools.zip -d /tmp/cmdline-tools-tmp
+          mv /tmp/cmdline-tools-tmp/cmdline-tools /opt/android-sdk/cmdline-tools/latest
+          SDKMANAGER=/opt/android-sdk/cmdline-tools/latest/bin/sdkmanager
+          java -version
+          yes | "$SDKMANAGER" --licenses || true
+          "$SDKMANAGER" "platform-tools" "platforms;android-36" "build-tools;35.0.0"
+          echo "ANDROID_SDK_ROOT=/opt/android-sdk" >> $GITHUB_ENV
+          echo "ANDROID_HOME=/opt/android-sdk" >> $GITHUB_ENV
 
       - name: Init Capacitor
         if: matrix.target == 'android'
