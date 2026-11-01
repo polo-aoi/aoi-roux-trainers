@@ -30,6 +30,7 @@ env:
 
 jobs:
   build:
+    name: ${{ matrix.artifact_name }}
     strategy:
       fail-fast: false
       matrix:
@@ -51,34 +52,38 @@ jobs:
 
     steps:
       - name: Checkout
+        if: github.event.inputs.platform == '' || github.event.inputs.platform == 'all' || github.event.inputs.platform == matrix.target
         uses: actions/checkout@v5
 
       - name: Setup Node.js 22
+        if: github.event.inputs.platform == '' || github.event.inputs.platform == 'all' || github.event.inputs.platform == matrix.target
         uses: actions/setup-node@v5
         with:
           node-version: '22'
 
       - name: Install dependencies
+        if: github.event.inputs.platform == '' || github.event.inputs.platform == 'all' || github.event.inputs.platform == matrix.target
         run: npm install
 
       - name: Build web app
+        if: github.event.inputs.platform == '' || github.event.inputs.platform == 'all' || github.event.inputs.platform == matrix.target
         run: npm run build
         env:
           CI: "false"
 
       - name: Build Electron app
-        if: matrix.target != 'android'
+        if: (github.event.inputs.platform == '' || github.event.inputs.platform == 'all' || github.event.inputs.platform == matrix.target) && matrix.target != 'android'
         run: npx electron-builder --${{ matrix.target }} --publish never
 
       - name: Setup Java 21
-        if: matrix.target == 'android'
+        if: (github.event.inputs.platform == '' || github.event.inputs.platform == 'all' || github.event.inputs.platform == matrix.target) && matrix.target == 'android'
         uses: actions/setup-java@v5
         with:
           java-version: '21'
           distribution: 'temurin'
 
       - name: Setup Android SDK
-        if: matrix.target == 'android'
+        if: (github.event.inputs.platform == '' || github.event.inputs.platform == 'all' || github.event.inputs.platform == matrix.target) && matrix.target == 'android'
         run: |
           set -euo pipefail
           SDK_URL=https://dl.google.com/android/repository/commandlinetools-linux-11076708_latest.zip
@@ -94,7 +99,7 @@ jobs:
           echo "ANDROID_HOME=/opt/android-sdk" >> $GITHUB_ENV
 
       - name: Init Capacitor
-        if: matrix.target == 'android'
+        if: (github.event.inputs.platform == '' || github.event.inputs.platform == 'all' || github.event.inputs.platform == matrix.target) && matrix.target == 'android'
         run: |
           if [ -d "android" ]; then
             echo "android/ already exists, skipping cap init/add"
@@ -108,7 +113,7 @@ jobs:
           ls -la android/
 
       - name: Build Android APK
-        if: matrix.target == 'android'
+        if: (github.event.inputs.platform == '' || github.event.inputs.platform == 'all' || github.event.inputs.platform == matrix.target) && matrix.target == 'android'
         env:
           ANDROID_HOME: /opt/android-sdk
           ANDROID_SDK_ROOT: /opt/android-sdk
@@ -118,13 +123,13 @@ jobs:
           ANDROID_HOME=/opt/android-sdk ./gradlew assembleDebug --stacktrace
 
       - name: Verify APK exists
-        if: matrix.target == 'android'
+        if: (github.event.inputs.platform == '' || github.event.inputs.platform == 'all' || github.event.inputs.platform == matrix.target) && matrix.target == 'android'
         run: |
           echo "=== APK output check ==="
           ls -lh android/app/build/outputs/apk/debug/*.apk 2>/dev/null && echo "APK found!" || (echo "ERROR: No APK found at android/app/build/outputs/apk/debug/" && exit 1)
 
       - name: Upload artifact
-        if: matrix.target != 'android'
+        if: (github.event.inputs.platform == '' || github.event.inputs.platform == 'all' || github.event.inputs.platform == matrix.target) && matrix.target != 'android'
         uses: actions/upload-artifact@v5
         with:
           name: ${{ matrix.artifact_name }}
@@ -136,7 +141,7 @@ jobs:
           retention-days: 30
 
       - name: Upload Android artifact
-        if: matrix.target == 'android'
+        if: (github.event.inputs.platform == '' || github.event.inputs.platform == 'all' || github.event.inputs.platform == matrix.target) && matrix.target == 'android'
         uses: actions/upload-artifact@v5
         with:
           name: ${{ matrix.artifact_name }}
