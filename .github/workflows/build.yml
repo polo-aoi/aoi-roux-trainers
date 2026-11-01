@@ -41,7 +41,7 @@ jobs:
           - os: ubuntu-22.04
             target: linux
             artifact_name: AoiRouxTrainers-linux
-          - os: macos-14
+          - os: macos-15
             target: mac
             artifact_name: AoiRouxTrainers-mac
           - os: ubuntu-22.04
