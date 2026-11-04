@@ -182,7 +182,24 @@ jobs:
           echo "iOS app found!"
           ls -lh "$APP_PATH"
 
-      - name: Package iOS app (zip)
+      - name: Build iOS device binary (unsigned arm64)
+        if: (github.event.inputs.platform == '' || github.event.inputs.platform == 'all' || github.event.inputs.platform == matrix.target) && matrix.target == 'ios'
+        run: |
+          set -euo pipefail
+          cd ios/App
+          xcodebuild \
+            -project App.xcodeproj \
+            -scheme App \
+            -configuration Release \
+            -sdk iphoneos \
+            -destination 'generic/platform=iOS' \
+            -derivedDataPath build-device \
+            CODE_SIGNING_ALLOWED=NO \
+            CODE_SIGNING_REQUIRED=NO \
+            CODE_SIGN_IDENTITY="" \
+            build
+
+      - name: Package iOS app (simulator zip)
         if: (github.event.inputs.platform == '' || github.event.inputs.platform == 'all' || github.event.inputs.platform == matrix.target) && matrix.target == 'ios'
         run: |
           set -euo pipefail
@@ -190,6 +207,25 @@ jobs:
           cd ios/App/build/Build/Products/Debug-iphonesimulator
           zip -qry "$GITHUB_WORKSPACE/release/AoiRouxTrainers-ios-simulator.app.zip" App.app
           cd "$GITHUB_WORKSPACE"
+          ls -lh release/
+
+      - name: Package iOS app (unsigned IPA)
+        if: (github.event.inputs.platform == '' || github.event.inputs.platform == 'all' || github.event.inputs.platform == matrix.target) && matrix.target == 'ios'
+        run: |
+          set -euo pipefail
+          APP_PATH="ios/App/build-device/Build/Products/Release-iphoneos/App.app"
+          if [ ! -d "$APP_PATH" ]; then
+            echo "ERROR: device app bundle not found at $APP_PATH"
+            ls -R ios/App/build-device/Build/Products 2>/dev/null || true
+            exit 1
+          fi
+          STAGE="$(mktemp -d)"
+          mkdir -p "$STAGE/Payload"
+          cp -r "$APP_PATH" "$STAGE/Payload/App.app"
+          cd "$STAGE"
+          zip -qry "$GITHUB_WORKSPACE/release/AoiRouxTrainers-ios-unsigned.ipa" Payload
+          cd "$GITHUB_WORKSPACE"
+          rm -rf "$STAGE"
           ls -lh release/
 
       - name: Upload iOS artifact
