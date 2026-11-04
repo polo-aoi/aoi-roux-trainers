@@ -235,6 +235,7 @@ jobs:
           name: ${{ matrix.artifact_name }}
           path: |
             release/*.zip
+            release/*.ipa
           retention-days: 30
 
       - name: Upload artifact
