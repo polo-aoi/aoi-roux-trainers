@@ -17,6 +17,7 @@ on:
           - linux
           - mac
           - android
+          - ios
 
 concurrency:
   group: build-${{ github.ref }}
@@ -47,6 +48,9 @@ jobs:
           - os: ubuntu-22.04
             target: android
             artifact_name: AoiRouxTrainers-android
+          - os: macos-15
+            target: ios
+            artifact_name: AoiRouxTrainers-ios
     runs-on: ${{ matrix.os }}
     timeout-minutes: 30
 
@@ -72,7 +76,7 @@ jobs:
           CI: "false"
 
       - name: Build Electron app
-        if: (github.event.inputs.platform == '' || github.event.inputs.platform == 'all' || github.event.inputs.platform == matrix.target) && matrix.target != 'android'
+        if: (github.event.inputs.platform == '' || github.event.inputs.platform == 'all' || github.event.inputs.platform == matrix.target) && matrix.target != 'android' && matrix.target != 'ios'
         run: npx electron-builder --${{ matrix.target }} --publish never
 
       - name: Setup Java 21
@@ -128,8 +132,77 @@ jobs:
           echo "=== APK output check ==="
           ls -lh android/app/build/outputs/apk/debug/*.apk 2>/dev/null && echo "APK found!" || (echo "ERROR: No APK found at android/app/build/outputs/apk/debug/" && exit 1)
 
+      - name: Init Capacitor iOS
+        if: (github.event.inputs.platform == '' || github.event.inputs.platform == 'all' || github.event.inputs.platform == matrix.target) && matrix.target == 'ios'
+        run: |
+          set -euo pipefail
+          if [ ! -d "ios" ]; then
+            echo "=== Running cap init ==="
+            npx cap init AoiRouxTrainers com.aoirouxtrainers.app --web-dir=build
+            echo "=== Running cap add ios ==="
+            npx cap add ios
+          else
+            echo "ios/ already exists, skipping cap init/add"
+          fi
+          echo "=== Checking ios/ directory ==="
+          ls -la ios/
+
+      - name: Generate Xcode scheme
+        if: (github.event.inputs.platform == '' || github.event.inputs.platform == 'all' || github.event.inputs.platform == matrix.target) && matrix.target == 'ios'
+        run: python3 scripts/gen-ios-scheme.py
+
+      - name: Build iOS app
+        if: (github.event.inputs.platform == '' || github.event.inputs.platform == 'all' || github.event.inputs.platform == matrix.target) && matrix.target == 'ios'
+        run: |
+          set -euo pipefail
+          npx cap sync ios
+          cd ios/App
+          xcodebuild \
+            -project App.xcodeproj \
+            -scheme App \
+            -configuration Debug \
+            -sdk iphonesimulator \
+            -destination 'generic/platform=iOS Simulator' \
+            -derivedDataPath build \
+            CODE_SIGNING_ALLOWED=NO \
+            CODE_SIGNING_REQUIRED=NO \
+            CODE_SIGN_IDENTITY="" \
+            build
+
+      - name: Verify iOS app exists
+        if: (github.event.inputs.platform == '' || github.event.inputs.platform == 'all' || github.event.inputs.platform == matrix.target) && matrix.target == 'ios'
+        run: |
+          set -euo pipefail
+          APP_PATH="ios/App/build/Build/Products/Debug-iphonesimulator/App.app"
+          if [ ! -d "$APP_PATH" ]; then
+            echo "ERROR: iOS app bundle not found at $APP_PATH"
+            ls -R ios/App/build/Build/Products 2>/dev/null || true
+            exit 1
+          fi
+          echo "iOS app found!"
+          ls -lh "$APP_PATH"
+
+      - name: Package iOS app (zip)
+        if: (github.event.inputs.platform == '' || github.event.inputs.platform == 'all' || github.event.inputs.platform == matrix.target) && matrix.target == 'ios'
+        run: |
+          set -euo pipefail
+          mkdir -p release
+          cd ios/App/build/Build/Products/Debug-iphonesimulator
+          zip -qry "$GITHUB_WORKSPACE/release/AoiRouxTrainers-ios-simulator.app.zip" App.app
+          cd "$GITHUB_WORKSPACE"
+          ls -lh release/
+
+      - name: Upload iOS artifact
+        if: (github.event.inputs.platform == '' || github.event.inputs.platform == 'all' || github.event.inputs.platform == matrix.target) && matrix.target == 'ios'
+        uses: actions/upload-artifact@v5
+        with:
+          name: ${{ matrix.artifact_name }}
+          path: |
+            release/*.zip
+          retention-days: 30
+
       - name: Upload artifact
-        if: (github.event.inputs.platform == '' || github.event.inputs.platform == 'all' || github.event.inputs.platform == matrix.target) && matrix.target != 'android'
+        if: (github.event.inputs.platform == '' || github.event.inputs.platform == 'all' || github.event.inputs.platform == matrix.target) && matrix.target != 'android' && matrix.target != 'ios'
         uses: actions/upload-artifact@v5
         with:
           name: ${{ matrix.artifact_name }}
