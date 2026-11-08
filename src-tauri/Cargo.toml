@@ -1,0 +1,27 @@
+[package]
+name = "aoi-roux-trainers"
+version = "1.11.0"
+description = "Aoi Roux Trainers - a minimalist Roux method trainer"
+authors = ["polo-aoi"]
+edition = "2021"
+rust-version = "1.77.2"
+
+# 移动端（Android / iOS）必须有 staticlib + cdylib，桌面端用 rlib。
+[lib]
+name = "aoi_roux_trainers_lib"
+crate-type = ["staticlib", "cdylib", "rlib"]
+
+[build-dependencies]
+tauri-build = { version = "2", features = [] }
+
+[dependencies]
+tauri = { version = "2", features = [] }
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+
+[profile.release]
+codegen-units = 1
+lto = true
+opt-level = "s"
+panic = "abort"
+strip = true
