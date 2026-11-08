@@ -1,0 +1,480 @@
+name: Tauri Build
+
+# 与 build.yml（Electron + Capacitor）完全独立：不修改、不依赖原有工作流。
+# 同样覆盖五平台：Windows / Linux / macOS / Android / iOS。
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+    inputs:
+      platform:
+        description: 'Platform to build'
+        required: false
+        default: 'all'
+        type: choice
+        options:
+          - all
+          - win
+          - linux
+          - mac
+          - android
+          - ios
+      publish:
+        description: 'Upload assets to the GitHub Release of this tag (tag builds always publish)'
+        required: false
+        default: false
+        type: boolean
+
+concurrency:
+  group: tauri-build-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  NODE_MIRROR: https://npmmirror.com/mirrors/node/
+  NPM_CONFIG_REGISTRY: https://registry.npmmirror.com
+  CARGO_TERM_COLOR: always
+
+permissions:
+  contents: read
+
+jobs:
+  windows:
+    name: Tauri · Windows x64
+    runs-on: windows-latest
+    timeout-minutes: 60
+    if: github.event_name == 'push' || github.event.inputs.platform == 'all' || github.event.inputs.platform == 'win'
+    env:
+      CI: "false"
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+
+      - name: Setup Node.js 22
+        uses: actions/setup-node@v5
+        with:
+          node-version: '22'
+
+      - name: Install dependencies
+        run: npm install
+
+      - name: Build web app
+        run: npm run build
+        env:
+          CI: "false"
+
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: x86_64-pc-windows-msvc
+
+      - name: Rust cache
+        uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: src-tauri -> target
+
+      - name: Prepare Tauri CLI and icons
+        shell: bash
+        run: |
+          set -euo pipefail
+          npm install -g @tauri-apps/cli@^2
+          # iOS 的 Xcode 构建脚本通过 `npm run tauri ...` 调用 CLI，需要该 script
+          npm pkg set scripts.tauri=tauri
+          npm run tauri -- icon public/favicon/web-app-manifest-512x512.png
+
+      - name: Build Tauri (NSIS)
+        run: npm run tauri -- build --target x86_64-pc-windows-msvc --bundles nsis
+
+      - name: Package artifacts
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = "Stop"
+          $V = (node -p "require('./package.json').version").Trim()
+          New-Item -ItemType Directory -Force dist | Out-Null
+          $bin = Get-ChildItem "src-tauri/target/x86_64-pc-windows-msvc/release" -Filter *.exe -File |
+            Where-Object { $_.Name -notlike "*setup*" } | Select-Object -First 1
+          if (-not $bin) { throw "Tauri executable not found" }
+          Copy-Item $bin.FullName "dist/AoiRouxTrainers-tauri-$V-windows-x64.exe"
+          Compress-Archive -Path "dist/AoiRouxTrainers-tauri-$V-windows-x64.exe" `
+            -DestinationPath "dist/AoiRouxTrainers-tauri-$V-windows-x64-portable.zip" -Force
+          Get-ChildItem "src-tauri/target/x86_64-pc-windows-msvc/release/bundle/nsis/*.exe" |
+            Copy-Item -Destination "dist/" -Force
+          Get-ChildItem dist | Format-Table Name, Length
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v5
+        with:
+          name: AoiRouxTrainers-tauri-win
+          path: dist/*
+          retention-days: 30
+
+  linux:
+    name: Tauri · Linux x64
+    runs-on: ubuntu-22.04
+    timeout-minutes: 60
+    if: github.event_name == 'push' || github.event.inputs.platform == 'all' || github.event.inputs.platform == 'linux'
+    env:
+      CI: "false"
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+
+      - name: Setup Node.js 22
+        uses: actions/setup-node@v5
+        with:
+          node-version: '22'
+
+      - name: Install Linux dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends \
+            libwebkit2gtk-4.1-dev build-essential curl wget file \
+            libxdo-dev libssl-dev libayatana-appindicator3-dev \
+            librsvg2-dev patchelf libfuse2 dpkg
+
+      - name: Install dependencies
+        run: npm install
+
+      - name: Build web app
+        run: npm run build
+        env:
+          CI: "false"
+
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: x86_64-unknown-linux-gnu
+
+      - name: Rust cache
+        uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: src-tauri -> target
+
+      - name: Prepare Tauri CLI and icons
+        shell: bash
+        run: |
+          set -euo pipefail
+          npm install -g @tauri-apps/cli@^2
+          npm pkg set scripts.tauri=tauri
+          npm run tauri -- icon public/favicon/web-app-manifest-512x512.png
+
+      - name: Build Tauri (AppImage + deb)
+        env:
+          APPIMAGE_EXTRACT_AND_RUN: 1
+        run: npm run tauri -- build --target x86_64-unknown-linux-gnu --bundles appimage,deb
+
+      - name: Package artifacts
+        shell: bash
+        run: |
+          set -euo pipefail
+          V=$(node -p "require('./package.json').version")
+          mkdir -p dist
+          cp src-tauri/target/x86_64-unknown-linux-gnu/release/bundle/appimage/*.AppImage \
+             "dist/AoiRouxTrainers-tauri-$V-linux-x64.AppImage"
+          cp src-tauri/target/x86_64-unknown-linux-gnu/release/bundle/deb/*.deb \
+             "dist/AoiRouxTrainers-tauri-$V-linux-x64.deb" 2>/dev/null || true
+          BIN="src-tauri/target/x86_64-unknown-linux-gnu/release/aoi-roux-trainers"
+          [ -x "$BIN" ] || BIN="src-tauri/target/x86_64-unknown-linux-gnu/release/Aoi Roux Trainers"
+          tar -czf "dist/AoiRouxTrainers-tauri-$V-linux-x64-portable.tar.gz" -C "$(dirname "$BIN")" "$(basename "$BIN")"
+          ls -lh dist
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v5
+        with:
+          name: AoiRouxTrainers-tauri-linux
+          path: dist/*
+          retention-days: 30
+
+  macos:
+    name: Tauri · macOS arm64
+    runs-on: macos-15
+    timeout-minutes: 60
+    if: github.event_name == 'push' || github.event.inputs.platform == 'all' || github.event.inputs.platform == 'mac'
+    env:
+      CI: "false"
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+
+      - name: Setup Node.js 22
+        uses: actions/setup-node@v5
+        with:
+          node-version: '22'
+
+      - name: Install dependencies
+        run: npm install
+
+      - name: Build web app
+        run: npm run build
+        env:
+          CI: "false"
+
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: aarch64-apple-darwin
+
+      - name: Rust cache
+        uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: src-tauri -> target
+
+      - name: Prepare Tauri CLI and icons
+        shell: bash
+        run: |
+          set -euo pipefail
+          npm install -g @tauri-apps/cli@^2
+          npm pkg set scripts.tauri=tauri
+          npm run tauri -- icon public/favicon/web-app-manifest-512x512.png
+
+      - name: Build Tauri (dmg, unsigned)
+        run: npm run tauri -- build --target aarch64-apple-darwin --bundles dmg
+
+      - name: Package artifacts
+        shell: bash
+        run: |
+          set -euo pipefail
+          V=$(node -p "require('./package.json').version")
+          BASE=src-tauri/target/aarch64-apple-darwin/release/bundle
+          mkdir -p dist
+          cp "$BASE"/dmg/*.dmg "dist/AoiRouxTrainers-tauri-$V-macos-arm64.dmg"
+          APP=$(find "$BASE/macos" -maxdepth 1 -type d -name "*.app" | head -1)
+          ditto -c -k --keepParent "$APP" "dist/AoiRouxTrainers-tauri-$V-macos-arm64.app.zip"
+          ls -lh dist
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v5
+        with:
+          name: AoiRouxTrainers-tauri-mac
+          path: dist/*
+          retention-days: 30
+
+  android:
+    name: Tauri · Android arm64
+    runs-on: ubuntu-22.04
+    timeout-minutes: 90
+    if: github.event_name == 'push' || github.event.inputs.platform == 'all' || github.event.inputs.platform == 'android'
+    env:
+      CI: "false"
+      NDK_VERSION: '27.1.12297006'
+      TAURI_ANDROID_KEYSTORE_B64: ${{ secrets.TAURI_ANDROID_KEYSTORE_B64 }}
+      TAURI_ANDROID_KEYSTORE_PASSWORD: ${{ secrets.TAURI_ANDROID_KEYSTORE_PASSWORD }}
+      TAURI_ANDROID_KEY_ALIAS: ${{ secrets.TAURI_ANDROID_KEY_ALIAS }}
+      TAURI_ANDROID_KEY_PASSWORD: ${{ secrets.TAURI_ANDROID_KEY_PASSWORD }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+
+      - name: Setup Java 21
+        uses: actions/setup-java@v5
+        with:
+          java-version: '21'
+          distribution: 'temurin'
+
+      - name: Setup Node.js 22
+        uses: actions/setup-node@v5
+        with:
+          node-version: '22'
+
+      - name: Setup Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: Install Android SDK / NDK
+        shell: bash
+        run: |
+          set -euo pipefail
+          yes | sdkmanager --licenses > /dev/null 2>&1 || true
+          sdkmanager --install "platform-tools" "platforms;android-36" \
+            "build-tools;35.0.0" "ndk;${NDK_VERSION}"
+          echo "NDK_HOME=$ANDROID_HOME/ndk/${NDK_VERSION}" >> "$GITHUB_ENV"
+          echo "ANDROID_NDK_HOME=$ANDROID_HOME/ndk/${NDK_VERSION}" >> "$GITHUB_ENV"
+
+      - name: Install dependencies
+        run: npm install
+
+      - name: Build web app
+        run: npm run build
+        env:
+          CI: "false"
+
+      - name: Install Rust (Android targets)
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: aarch64-linux-android,armv7-linux-androideabi,i686-linux-android,x86_64-linux-android
+
+      - name: Rust cache
+        uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: src-tauri -> target
+
+      - name: Prepare Tauri CLI, icons and Android project
+        shell: bash
+        run: |
+          set -euo pipefail
+          npm install -g @tauri-apps/cli@^2
+          npm pkg set scripts.tauri=tauri
+          npm run tauri -- icon public/favicon/web-app-manifest-512x512.png
+          npm run tauri -- android init --ci
+
+      - name: Build APK (release, arm64)
+        run: npm run tauri -- android build --apk --target aarch64
+
+      - name: Sign APK
+        shell: bash
+        run: |
+          set -euo pipefail
+          V=$(node -p "require('./package.json').version")
+          APK=$(find src-tauri/gen/android/app/build/outputs/apk -name "*.apk" | head -1)
+          [ -n "$APK" ] || { echo "ERROR: no APK produced"; exit 1; }
+          mkdir -p dist
+          if [ -n "${TAURI_ANDROID_KEYSTORE_B64:-}" ]; then
+            printf '%s' "$TAURI_ANDROID_KEYSTORE_B64" | base64 -d > "$RUNNER_TEMP/app.keystore"
+            KS_PASS="${TAURI_ANDROID_KEYSTORE_PASSWORD}"
+            KEY_PASS="${TAURI_ANDROID_KEY_PASSWORD:-$KS_PASS}"
+            KEY_ALIAS="${TAURI_ANDROID_KEY_ALIAS}"
+          else
+            # 仓库内置的固定签名库：跳构建签名一致，可覆盖升级
+            base64 -d src-tauri/mobile/android/aoi-roux-trainers.keystore.b64 > "$RUNNER_TEMP/app.keystore"
+            KS_PASS="aoiroux2024"
+            KEY_PASS="aoiroux2024"
+            KEY_ALIAS="aoiroux"
+          fi
+          BT=$(ls -d "$ANDROID_HOME"/build-tools/*/ | sort -V | tail -1)
+          "${BT}zipalign" -f -p 4 "$APK" "$RUNNER_TEMP/aligned.apk"
+          "${BT}apksigner" sign --ks "$RUNNER_TEMP/app.keystore" \
+            --ks-pass "pass:$KS_PASS" --key-pass "pass:$KEY_PASS" --ks-key-alias "$KEY_ALIAS" \
+            --out "dist/AoiRouxTrainers-tauri-$V-android-arm64.apk" "$RUNNER_TEMP/aligned.apk"
+          "${BT}apksigner" verify --print-certs "dist/AoiRouxTrainers-tauri-$V-android-arm64.apk"
+          ls -lh dist
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v5
+        with:
+          name: AoiRouxTrainers-tauri-android
+          path: dist/*.apk
+          retention-days: 30
+
+  ios:
+    name: Tauri · iOS arm64 (unsigned)
+    runs-on: macos-15
+    timeout-minutes: 90
+    if: github.event_name == 'push' || github.event.inputs.platform == 'all' || github.event.inputs.platform == 'ios'
+    env:
+      CI: "false"
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+
+      - name: Setup Node.js 22
+        uses: actions/setup-node@v5
+        with:
+          node-version: '22'
+
+      - name: Install dependencies
+        run: npm install
+
+      - name: Build web app
+        run: npm run build
+        env:
+          CI: "false"
+
+      - name: Install Rust (iOS targets)
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: aarch64-apple-ios,aarch64-apple-ios-sim,x86_64-apple-ios
+
+      - name: Rust cache
+        uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: src-tauri -> target
+
+      - name: Prepare Tauri CLI, icons and Xcode project
+        shell: bash
+        run: |
+          set -euo pipefail
+          npm install -g @tauri-apps/cli@^2
+          npm pkg set scripts.tauri=tauri
+          npm run tauri -- icon public/favicon/web-app-manifest-512x512.png
+          npm run tauri -- ios init --ci
+
+      - name: Build iOS (device arm64, unsigned)
+        run: npm run tauri -- ios build --target aarch64 --no-sign
+
+      - name: Package artifacts
+        shell: bash
+        run: |
+          set -euo pipefail
+          V=$(node -p "require('./package.json').version")
+          mkdir -p dist
+          IPA=$(find src-tauri/gen/apple -type f -name "*.ipa" | head -1 || true)
+          if [ -n "${IPA:-}" ]; then
+            cp "$IPA" "dist/AoiRouxTrainers-tauri-$V-ios-unsigned.ipa"
+          else
+            APP=$(find src-tauri/gen/apple -type d -name "*.app" | grep -v -i sim | head -1 || true)
+            [ -n "${APP:-}" ] || APP=$(find src-tauri/gen/apple -type d -name "*.app" | head -1 || true)
+            [ -n "${APP:-}" ] || { echo "ERROR: iOS .app bundle not found"; exit 1; }
+            STAGE=$(mktemp -d)
+            mkdir -p "$STAGE/Payload"
+            cp -R "$APP" "$STAGE/Payload/"
+            ( cd "$STAGE" && ditto -c -k --keepParent Payload "$GITHUB_WORKSPACE/dist/AoiRouxTrainers-tauri-$V-ios-unsigned.ipa" )
+            rm -rf "$STAGE"
+          fi
+          SIM=$(find src-tauri/gen/apple -type d -name "*.app" | grep -i sim | head -1 || true)
+          if [ -n "${SIM:-}" ]; then
+            ( cd "$(dirname "$SIM")" && zip -qry "$GITHUB_WORKSPACE/dist/AoiRouxTrainers-tauri-$V-ios-simulator.app.zip" "$(basename "$SIM")" )
+          fi
+          ls -lh dist
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v5
+        with:
+          name: AoiRouxTrainers-tauri-ios
+          path: dist/*
+          retention-days: 30
+
+  publish:
+    name: Upload Tauri assets to Release
+    needs: [windows, linux, macos, android, ios]
+    runs-on: ubuntu-22.04
+    timeout-minutes: 20
+    if: |
+      always() && startsWith(github.ref, 'refs/tags/v') &&
+      (github.event_name == 'push' || github.event.inputs.publish == 'true')
+    permissions:
+      contents: write
+    env:
+      GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    steps:
+      - name: Download all Tauri artifacts
+        uses: actions/download-artifact@v5
+        with:
+          path: artifacts
+          pattern: AoiRouxTrainers-tauri-*
+
+      - name: Flatten artifacts
+        run: |
+          mkdir -p dist
+          for dir in artifacts/*/; do
+            [ -d "$dir" ] || continue
+            cp -r "$dir"* dist/ 2>/dev/null || true
+          done
+          ls -lh dist
+
+      - name: Upload to release
+        shell: bash
+        run: |
+          set -euo pipefail
+          TAG="${GITHUB_REF_NAME}"
+          if [ -z "$(ls -A dist)" ]; then
+            echo "No Tauri artifacts produced, nothing to upload."
+            exit 0
+          fi
+          # 等 build.yml 的 release job 建好 tag（最多 10 分钟），避免并发创建冲突
+          for _ in $(seq 1 40); do
+            if gh release view "$TAG" > /dev/null 2>&1; then break; fi
+            sleep 15
+          done
+          if ! gh release view "$TAG" > /dev/null 2>&1; then
+            gh release create "$TAG" --title "$TAG" --generate-notes
+          fi
+          gh release upload "$TAG" dist/* --clobber
